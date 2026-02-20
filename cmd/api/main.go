@@ -42,7 +42,7 @@ func main() {
 		taskHandler.GetExternalTasks(w, r)
 	})
 
-	handler := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux)))
+	handler := middleware.RateLimitMiddleware(middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux))))
 
 	server := &http.Server{
 		Addr:    ":8080",
