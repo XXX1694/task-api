@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"task-api/internal/handlers"
 	"task-api/internal/middleware"
 	"task-api/internal/models"
+	"time"
 )
 
 func main() {
@@ -31,8 +36,30 @@ func main() {
 
 	handler := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux)))
 
-	log.Println("Server starting on :8080")
-	if err := http.ListenAndServe(":8080", handler); err != nil {
-		log.Fatal(err)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: handler,
 	}
+
+	go func() {
+		log.Println("Server starting on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Server shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server stopped")
 }

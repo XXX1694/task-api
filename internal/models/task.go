@@ -10,13 +10,13 @@ type Task struct {
 
 type TaskStore struct {
 	mu     sync.Mutex
-	tasks  []Task
+	tasks  map[int]Task
 	nextID int
 }
 
 func NewTaskStore() *TaskStore {
 	return &TaskStore{
-		tasks:  make([]Task, 0),
+		tasks:  make(map[int]Task),
 		nextID: 1,
 	}
 }
@@ -30,7 +30,7 @@ func (s *TaskStore) Create(title string) Task {
 		Title: title,
 		Done:  false,
 	}
-	s.tasks = append(s.tasks, task)
+	s.tasks[s.nextID] = task
 	s.nextID++
 	return task
 }
@@ -39,43 +39,45 @@ func (s *TaskStore) GetAll() []Task {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.tasks
+	result := make([]Task, 0, len(s.tasks))
+	for _, task := range s.tasks {
+		result = append(result, task)
+	}
+	return result
 }
 
 func (s *TaskStore) GetByID(id int) (*Task, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for i := range s.tasks {
-		if s.tasks[i].ID == id {
-			return &s.tasks[i], true
-		}
+	task, found := s.tasks[id]
+	if !found {
+		return nil, false
 	}
-	return nil, false
+	return &task, true
 }
 
 func (s *TaskStore) Update(id int, done bool) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for i := range s.tasks {
-		if s.tasks[i].ID == id {
-			s.tasks[i].Done = done
-			return true
-		}
+	task, found := s.tasks[id]
+	if !found {
+		return false
 	}
-	return false
+	task.Done = done
+	s.tasks[id] = task
+	return true
 }
 
 func (s *TaskStore) Delete(id int) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for i := range s.tasks {
-		if s.tasks[i].ID == id {
-			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
-			return true
-		}
+	_, found := s.tasks[id]
+	if !found {
+		return false
 	}
-	return false
+	delete(s.tasks, id)
+	return true
 }
