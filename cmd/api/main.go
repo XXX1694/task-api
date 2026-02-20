@@ -29,7 +29,7 @@ func main() {
 		}
 	})
 
-	handler := middleware.LoggingMiddleware(middleware.AuthMiddleware(mux))
+	handler := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux)))
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", handler); err != nil {
