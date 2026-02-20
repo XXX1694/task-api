@@ -1,5 +1,7 @@
 package models
 
+import "sync"
+
 type Task struct {
 	ID    int    `json:"id"`
 	Title string `json:"title"`
@@ -7,6 +9,7 @@ type Task struct {
 }
 
 type TaskStore struct {
+	mu     sync.Mutex
 	tasks  []Task
 	nextID int
 }
@@ -19,6 +22,9 @@ func NewTaskStore() *TaskStore {
 }
 
 func (s *TaskStore) Create(title string) Task {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	task := Task{
 		ID:    s.nextID,
 		Title: title,
@@ -30,10 +36,16 @@ func (s *TaskStore) Create(title string) Task {
 }
 
 func (s *TaskStore) GetAll() []Task {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.tasks
 }
 
 func (s *TaskStore) GetByID(id int) (*Task, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for i := range s.tasks {
 		if s.tasks[i].ID == id {
 			return &s.tasks[i], true
@@ -43,6 +55,9 @@ func (s *TaskStore) GetByID(id int) (*Task, bool) {
 }
 
 func (s *TaskStore) Update(id int, done bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for i := range s.tasks {
 		if s.tasks[i].ID == id {
 			s.tasks[i].Done = done
@@ -53,6 +68,9 @@ func (s *TaskStore) Update(id int, done bool) bool {
 }
 
 func (s *TaskStore) Delete(id int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for i := range s.tasks {
 		if s.tasks[i].ID == id {
 			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
