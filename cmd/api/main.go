@@ -17,9 +17,9 @@ func main() {
 	store := models.NewTaskStore()
 	taskHandler := handlers.NewTaskHandler(store)
 
-	mux := http.NewServeMux()
+	apiMux := http.NewServeMux()
 
-	mux.HandleFunc("/v1/tasks", func(w http.ResponseWriter, r *http.Request) {
+	apiMux.HandleFunc("/v1/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			taskHandler.GetTasks(w, r)
@@ -34,7 +34,7 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/v1/external/tasks", func(w http.ResponseWriter, r *http.Request) {
+	apiMux.HandleFunc("/v1/external/tasks", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -42,11 +42,31 @@ func main() {
 		taskHandler.GetExternalTasks(w, r)
 	})
 
-	handler := middleware.RateLimitMiddleware(middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux))))
+	protectedHandler := middleware.RateLimitMiddleware(middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(apiMux))))
+
+	mainMux := http.NewServeMux()
+
+	mainMux.HandleFunc("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		handlers.SwaggerHandler(w, r)
+	})
+
+	mainMux.HandleFunc("/swagger-ui", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		handlers.SwaggerUIHandler(w, r)
+	})
+
+	mainMux.Handle("/", protectedHandler)
 
 	server := &http.Server{
 		Addr:    ":8080",
-		Handler: handler,
+		Handler: mainMux,
 	}
 
 	go func() {
