@@ -39,6 +39,9 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(task)
 		return
 	}
+	tasks := h.store.GetAll()
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(tasks)
 }
 
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +63,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task := &models.Task{}
+	task := h.store.Create(req.Title)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(task)
@@ -70,7 +73,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	idStr := r.URL.Query().Get("id")
-	if idStr != "" {
+	if idStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
 		return
@@ -102,4 +105,32 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{"done": true})
+}
+
+func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
+		return
+	}
+
+	deleted := h.store.Delete(id)
+	if !deleted {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "task not found"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]bool{"deleted": true})
 }

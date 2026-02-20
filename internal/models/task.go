@@ -51,3 +51,13 @@ func (s *TaskStore) Update(id int, done bool) bool {
 	}
 	return false
 }
+
+func (s *TaskStore) Delete(id int) bool {
+	for i := range s.tasks {
+		if s.tasks[i].ID == id {
+			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
+			return true
+		}
+	}
+	return false
+}

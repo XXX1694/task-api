@@ -22,6 +22,8 @@ func main() {
 			taskHandler.CreateTask(w, r)
 		case http.MethodPatch:
 			taskHandler.UpdateTask(w, r)
+		case http.MethodDelete:
+			taskHandler.DeleteTask(w, r)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
