@@ -19,7 +19,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			taskHandler.GetTasks(w, r)
@@ -32,6 +32,14 @@ func main() {
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
+	})
+
+	mux.HandleFunc("/v1/external/tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		taskHandler.GetExternalTasks(w, r)
 	})
 
 	handler := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(middleware.AuthMiddleware(mux)))
