@@ -19,6 +19,7 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	idStr := r.URL.Query().Get("id")
+	doneStr := r.URL.Query().Get("done")
 
 	if idStr != "" {
 		id, err := strconv.Atoi(idStr)
@@ -39,7 +40,22 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(task)
 		return
 	}
+
 	tasks := h.store.GetAll()
+
+	if doneStr != "" {
+		doneBool, err := strconv.ParseBool(doneStr)
+		if err == nil {
+			filtered := []models.Task{}
+			for _, task := range tasks {
+				if task.Done == doneBool {
+					filtered = append(filtered, task)
+				}
+			}
+			tasks = filtered
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(tasks)
 }
