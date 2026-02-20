@@ -79,6 +79,12 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Title) > 100 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "title too long (max 100 characters)"})
+		return
+	}
+
 	task := h.store.Create(req.Title)
 
 	w.WriteHeader(http.StatusCreated)
